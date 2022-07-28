@@ -1,4 +1,4 @@
-const { useState } = React;
+const { useState, useEffect } = React;
 const root = ReactDOM.createRoot(document.querySelector('#root'));
 const Header = () => {
   return (
@@ -13,10 +13,7 @@ const Content = () => {
     content: '',
     done: false,
   });
-  const [notes, setNotes] = useState([
-    { content: '哈哈哈', done: false },
-    { content: '哭哭哭', done: true },
-  ]);
+  const [notes, setNotes] = useState([]);
   const textAreaAdd = (e) => {
     const { value, name } = e.target;
     setNewItem((prevState) => {
@@ -27,52 +24,83 @@ const Content = () => {
     });
   };
   const AddItem = () => {
-    setNotes((prevState) => {
-      return [...prevState, newItem];
-    });
-    setNewItem({
-      content: '',
-      done: false,
-    });
+    let obj = newItem;
+    axios
+      .post('https://fathomless-brushlands-42339.herokuapp.com/todo4', obj)
+      .then((res) => {
+        console.log(res.data);
+        getData()
+        setNewItem({
+          content: '',
+          done: false,
+        });
+      });
   };
   const handleDelete = (e) => {
     const { id } = e.target;
-    setNotes((prevState) => {
-      console.log(prevState);
-      return prevState.filter((item, index) => {
-        return index != id;
-      });
+    axios.delete(
+      `https://fathomless-brushlands-42339.herokuapp.com/todo4/${id}`
+    ).then(res=>{
+      getData();
     });
   };
   const handleDone = (e) => {
     const { id } = e.target;
-    const newNotes = [...notes];
-    newNotes[id].done = !newNotes[id].done;
-    setNotes(newNotes);
+    const newNote = [...notes].filter((item) => {
+      return item.id == id;
+    });
+
+    newNote[0].done = !newNote[0].done;
+
+    axios
+      .patch(
+        `https://fathomless-brushlands-42339.herokuapp.com/todo4/${id}`,
+        newNote[0]
+      )
+      .then((res) => {
+        getData();
+      });
   };
+  const keyEnter=(e)=>{
+    if(e.keyCode==13){
+      AddItem();
+    }
+  }
   let done = notes.filter((noteItem) => noteItem.done == 1);
   let unDone = notes.filter((noteItem) => noteItem.done == 0);
 
+  const getData = () => {
+    axios
+      .get('https://fathomless-brushlands-42339.herokuapp.com/todo4')
+      .then((res) => {
+        setNotes(res.data);
+      });
+  };
+  useEffect(() => {
+    getData();
+  }, []);
   const showData = () => {
     if (tab == 'all') {
       return notes.map((item, index) => {
         return (
           <li
             style={
-              item.done ? { textDecoration: 'line-through', opacity:'0.5' } : null
+              item.done
+                ? { textDecoration: 'line-through', opacity: '0.5' }
+                : null
             }
-            id={index}
+            id={item.id}
             className="w-full shadow-lg  my-3 bg-gray-100 rounded-xl bg-opacity-70 px-4 py-2"
           >
             <input
-              id={index}
+              id={item.id}
               className="mr-3 cursor-pointer text-inherit bg-red-500 px-1 rounded-md bg-opacity-50"
               type="button"
               value="Done"
               onClick={handleDone}
             />
             <input
-              id={index}
+              id={item.id}
               className="float-right cursor-pointer"
               type="button"
               value="Delete"
@@ -91,18 +119,18 @@ const Content = () => {
                 ? { textDecoration: 'line-through', opacity: '0.5' }
                 : null
             }
-            id={index}
+            id={item.id}
             className="w-full shadow-lg  my-3 bg-gray-100 rounded-xl bg-opacity-70 px-4 py-2"
           >
             <input
-              id={index}
+              id={item.idex}
               className="mr-3 cursor-pointer text-inherit bg-red-500 px-1 rounded-md bg-opacity-50"
               type="button"
               value="Done"
               onClick={handleDone}
             />
             <input
-              id={index}
+              id={item.id}
               className="float-right cursor-pointer"
               type="button"
               value="Delete"
@@ -121,18 +149,18 @@ const Content = () => {
                 ? { textDecoration: 'line-through', opacity: '0.5' }
                 : null
             }
-            id={index}
+            id={item.id}
             className="w-full shadow-lg  my-3 bg-gray-100 rounded-xl bg-opacity-70 px-4 py-2"
           >
             <input
-              id={index}
+              id={item.id}
               className="mr-3 cursor-pointer text-inherit bg-red-500 px-1 rounded-md bg-opacity-50"
               type="button"
               value="Done"
               onClick={handleDone}
             />
             <input
-              id={index}
+              id={item.id}
               className="float-right cursor-pointer"
               type="button"
               value="Delete"
@@ -143,7 +171,6 @@ const Content = () => {
         );
       });
     }
-    
   };
   const [tab, setTab] = useState('all');
   const selectChange = (e) => {
@@ -162,6 +189,7 @@ const Content = () => {
           className="w-full indent-8 h-12 mb-2 text-2xl rounded-2xl"
           type="text"
           name="content"
+          onKeyDown={keyEnter}
         />
         <button
           onClick={AddItem}
